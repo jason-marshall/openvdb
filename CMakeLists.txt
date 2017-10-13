@@ -33,13 +33,13 @@ PROJECT ( OpenVDB )
 ENABLE_TESTING()
 
 OPTION ( OPENVDB_BUILD_UNITTESTS "Build the OpenVDB unit tests" ON )
-OPTION ( OPENVDB_BUILD_DOCS "Build the OpenVDB documentation" OFF )
+OPTION ( OPENVDB_BUILD_DOCS "Build the OpenVDB documentation" ON )
 OPTION ( OPENVDB_BUILD_PYTHON_MODULE "Build the pyopenvdb Python module" ON )
 OPTION ( OPENVDB_BUILD_HOUDINI_SOPS "Build the Houdini SOPs" OFF )
 OPTION ( OPENVDB_BUILD_MAYA_PLUGIN "Build the Maya plugin" OFF )
 OPTION ( OPENVDB_BUILD_CORE "Build the OpenVDB core" ON )
 OPTION ( OPENVDB_ENABLE_RPATH "Build with RPATH information" ON )
-OPTION ( OPENVDB_ENABLE_3_ABI_COMPATIBLE "Build with OpenVDB v3 ABI" ON )
+OPTION ( OPENVDB_ENABLE_3_ABI_COMPATIBLE "Build with OpenVDB v3 ABI" OFF )
 OPTION ( OPENVDB_DISABLE_BOOST_IMPLICIT_LINKING "Disable the implicit linking of Boost libraries on Windows" ON )
 
 IF (OPENVDB_BUILD_HOUDINI_SOPS)
@@ -48,7 +48,7 @@ ENDIF ()
 
 IF ( APPLE )
   IF ( OPENVDB_BUILD_HOUDINI_SOPS AND OPENVDB_BUILD_MAYA_PLUGIN )
-	MESSAGE ( FATAL_ERROR "On OSX, Houdini linked with libc++ whereas Maya is linked with libstdc++, the different runtimes are not mutually compatible, build them Houdini SOPs and Maya plugins separately with the requisite DCC's compiler" )
+    MESSAGE ( FATAL_ERROR "On OSX, Houdini linked with libc++ whereas Maya is linked with libstdc++, the different runtimes are not mutually compatible, build them Houdini SOPs and Maya plugins separately with the requisite DCC's compiler" )
   ENDIF ()
 ENDIF ()
 
@@ -63,9 +63,105 @@ IF ( OPENVDB_ENABLE_3_ABI_COMPATIBLE )
 ENDIF ()
 
 IF ( OPENVDB_BUILD_CORE )
-  ADD_SUBDIRECTORY ( openvdb )
-ENDIF ()
+  # include external projects
+  include(ExternalProject)
 
+  # initialize dependencies
+  set(OPENVDB_CORE_DEPENDENCIES "")
+  set(OPENEXR_DEPENDENCIES "")
+  
+  # build blosc?
+  OPTION (USE_SYSTEM_BLOSC "Should we use the system BLOSC?" OFF) 
+  if(USE_SYSTEM_BLOSC)
+    find_package(BLOSC REQUIRED)
+  else()
+    include(External_BLOSC)
+    list(APPEND OPENVDB_CORE_DEPENDENCIES blosc)
+  endif()
+
+  # build boost?
+  option(USE_SYSTEM_BOOST "Should we use the system BOOST version > 1.57?" OFF)
+  set(boost_version_min "1.52")
+  if(USE_SYSTEM_BOOST)
+    find_package(Boost ${boost_version_min} REQUIRED COMPONENTS iostreams system thread ${OPENVDB_BOOST_PYTHON_LIBRARY_COMPONENT_NAME})
+  else()
+    include(External_BOOST)
+    list(APPEND OPENVDB_CORE_DEPENDENCIES Boost)
+  endif()
+
+  # build cppunit?
+  if(OPENVDB_BUILD_UNITTESTS)
+    option(USE_SYSTEM_CPPUNIT "Should we use the system cppunit?" OFF)
+    if(USE_SYSTEM_CPPUNIT)
+      find_package(CPPUnit REQUIRED)
+    else()
+      include(External_CPPUNIT)
+      list(APPEND OPENVDB_CORE_DEPENDENCIES cppunit)
+    endif()
+  endif()
+
+  # build doxygen?
+  if(OPENVDB_BUILD_DOCS)
+    option(USE_SYSTEM_DOXYGEN "Should we use the system doxygen?" OFF)
+    if(USE_SYSTEM_DOXYGEN)
+      find_package(Doxygen REQUIRED)
+    else()
+      include(External_DOXYGEN)
+      list(APPEND OPENVDB_CORE_DEPENDENCIES doxygen)
+    endif()
+  endif()
+
+  # build glfw3?
+  option(USE_SYSTEM_GLFW3 "Should we use the system glfw3?" OFF)
+  if(USE_SYSTEM_GLFW3)
+    find_package(GLFW3 REQUIRED)
+  else()
+    include(External_GLFW3)
+    list(APPEND OPENVDB_CORE_DEPENDENCIES glfw3)
+  endif()
+
+  # build ILMBase?
+  option(USE_SYSTEM_ILMBASE "Should we use the system ILMBase?" OFF)
+  if(USE_SYSTEM_ILMBASE)
+    find_package(ILMBASE REQUIRED)
+  else()
+    include(External_ILMBASE)
+    list(APPEND OPENVDB_CORE_DEPENDENCIES ilmbase)
+    list(APPEND OPENEXR_DEPENDENCIES ilmbase)
+  endif()
+
+  # build OpenEXR?
+  option(USE_SYSTEM_OPENEXR "Should we use the system OpenEXR?" OFF)
+  if(USE_SYSTEM_OPENEXR)
+    find_package(OPENEXR REQUIRED)
+  else()
+    include(External_OPENEXR)
+    list(APPEND OPENVDB_CORE_DEPENDENCIES openexr)
+  endif()
+
+  # build TBB?
+  option(USE_SYSTEM_TBB "Should we use the system TBB?" OFF)
+  if(USE_SYSTEM_TBB)
+    find_package(TBB REQUIRED)
+  else()
+    include(External_TBB)
+    list(APPEND OPENVDB_CORE_DEPENDENCIES tbb)
+  endif()
+
+  # build ZLIB?
+  option(USE_SYSTEM_ZLIB "Should we use the system ZLIB?" OFF)
+  if(USE_SYSTEM_ZLIB)
+    find_package(ZLIB REQUIRED)
+  else()
+    include(External_ZLIB)
+    list(APPEND OPENVDB_CORE_DEPENDENCIES zlib)
+  endif()
+
+  # build openvdb core
+  include(External_OPENVDB)
+  
+ENDIF ()
+return()
 IF (OPENVDB_BUILD_PYTHON_MODULE)
   ADD_SUBDIRECTORY ( openvdb/python )
 ENDIF ()

@@ -1,0 +1,21 @@
+# An external project for openvdb
+set(openvdb_src "${CMAKE_SOURCE_DIR}/openvdb")
+
+# switch between operating systems
+if(WIN32 OR APPLE)
+
+else()
+  ExternalProject_Add(openvdb
+    DEPENDS ${OPENVDB_CORE_DEPENDENCIES}
+    SOURCE_DIR ${openvdb_src}
+    # install location
+    INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
+    CMAKE_ARGS -DCMAKE_CXX_FLAGS=-std=c++11 -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc
+    CMAKE_CACHE_ARGS -DOPENVDB_ENABLE_3_ABI_COMPATIBLE:string=${OPENVDB_ENABLE_3_ABI_COMPATIBLE} -DOPENVDB_DISABLE_BOOST_IMPLICIT_LINKING:string=${OPENVDB_DISABLE_BOOST_IMPLICIT_LINKING} -DOPENVDB_BUILD_UNITTESTS:string=${OPENVDB_BUILD_UNITTESTS} -DOPENVDB_BUILD_DOCS:string=${OPENVDB_BUILD_DOCS} -DOPENVDB_BUILD_HOUDINI_SOPS:string=${OPENVDB_BUILD_HOUDINI_SOPS} -DOPENVDB_TOP_LEVEL_DIR:string=${OPENVDB_TOP_LEVEL_DIR} -DILMBASE_NAMESPACE_VERSIONING:string=OFF -DOPENEXR_NAMESPACE_VERSIONING:string=OFF -DUSE_GLFW3:string=ON -DBlosc_USE_STATIC_LIBS:string=ON -DCMAKE_INSTALL_PREFIX:string=${CMAKE_INSTALL_PREFIX}
+    )
+  #ExternalProject_Add_Step(openvdb link
+  # COMMAND sh -c "ln -sf ${openvdb_prefix}/src/openvdb-build/libopenvdb.so ${INSTALL_DIRECTORY}/lib/libopenvdb.so"
+  #DEPENDEES install
+  #)
+endif()
+
